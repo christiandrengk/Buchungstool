@@ -11,23 +11,22 @@ const PUFFER: UnavailableReason = "PUFFER";
 /**
  * Seed-Daten für den Forschungsraum.
  *
- * Hinweis zu den Abteilungen: Die Namen sind die klassischen sonderpädagogischen
- * Förderschwerpunkte/Fachrichtungen plus die im Auftrag genannten Eigentümer
- * (Mathe, PKGB). Bitte bei Bedarf an die echten 11 Abteilungen des Instituts
- * anpassen – einfach diese Liste editieren und neu seeden.
+ * Abteilungen: die 11 echten Abteilungen des Instituts. Die Kürzel (shortName)
+ * sind frei wählbar und werden in Badges/Listen kompakt angezeigt – bei Bedarf
+ * anpassen und neu seeden.
  */
 const DEPARTMENTS: { name: string; shortName: string }[] = [
-  { name: "Lernen", shortName: "Lernen" },
-  { name: "Geistige Entwicklung", shortName: "GE" },
-  { name: "Emotionale und soziale Entwicklung", shortName: "ESE" },
-  { name: "Sprache", shortName: "Sprache" },
-  { name: "Körperliche und motorische Entwicklung", shortName: "KME" },
-  { name: "Hören und Kommunikation", shortName: "Hören" },
-  { name: "Sehen", shortName: "Sehen" },
-  { name: "Pädagogik bei Krankheit und Gesundheitsstörungen", shortName: "PKGB" },
-  { name: "Mathematikdidaktik", shortName: "Mathe" },
-  { name: "Allgemeine Sonderpädagogik", shortName: "ASP" },
-  { name: "Inklusionspädagogik", shortName: "Inklusion" },
+  { name: "Allgemeine Behindertenpädagogik und -soziologie", shortName: "ABS" },
+  { name: "Sachunterricht und Inklusive Didaktik", shortName: "Sachunterricht" },
+  { name: "Inklusive Deutschdidaktik", shortName: "Deutsch" },
+  { name: "Sonderpädagogische Psychologie", shortName: "Psychologie" },
+  { name: "Sprach-Pädagogik und -Therapie", shortName: "Sprache" },
+  { name: "Inklusive Mathematikdidaktik", shortName: "Mathe" },
+  { name: "Inklusive Schulentwicklung", shortName: "Schulentwicklung" },
+  { name: "Pädagogik der Teilhabe an beruflichen Übergängen", shortName: "Berufl. Übergänge" },
+  { name: "Pädagogik bei Beeinträchtigungen des Lernens", shortName: "Lernen" },
+  { name: "Pädagogik bei Beeinträchtigungen der emotionalen und sozialen Entwicklung", shortName: "ESE" },
+  { name: "Pädagogik im Kontext geistiger Behinderung", shortName: "Geistige Entwicklung" },
 ];
 
 async function main() {
@@ -45,8 +44,12 @@ async function main() {
     departments[d.shortName] = dep.id;
   }
 
+  // "Mathe" = Inklusive Mathematikdidaktik (Eigentümerin von Kameras, Stativen, iPads).
   const mathe = departments["Mathe"];
-  const pkgb = departments["PKGB"];
+  // Im ursprünglichen Auftrag "PKGB" genannt: Eigentümerin von 3D-Brille,
+  // Sony-Kameras und Mikrofonen. Welche der 11 Abteilungen das ist, ist noch
+  // offen – bis zur Klärung ohne zugeordnete Eigentümerin (null).
+  const pkgb: number | null = null;
 
   // Hilfsfunktion: Kategorie + Exemplare anlegen.
   async function createCategory(opts: {
