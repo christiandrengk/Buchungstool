@@ -18,7 +18,7 @@ export default function PlaetzePage() {
   });
   const [booker, setBooker] = useState<BookerData>(emptyBooker);
   const [categories, setCategories] = useState<CategoryAvailabilityDTO[]>([]);
-  const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
+  const [selectedItemIds, setSelectedItemIds] = useState<number[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);
@@ -54,15 +54,21 @@ export default function PlaetzePage() {
 
   useEffect(() => {
     loadAvailability();
-    setSelectedItemId(null);
+    setSelectedItemIds([]);
   }, [loadAvailability]);
+
+  const toggleItem = (id: number) => {
+    setSelectedItemIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setSuccess(null);
-    if (!selectedItemId) {
-      setError("Bitte einen freien Platz auswählen.");
+    if (selectedItemIds.length === 0) {
+      setError("Bitte mindestens einen freien Platz auswählen.");
       return;
     }
     setSubmitting(true);
@@ -76,11 +82,13 @@ export default function PlaetzePage() {
           purpose: booker.purpose,
           start: localInputToISO(range.start),
           end: localInputToISO(range.end),
-          resourceItemId: selectedItemId,
+          lines: selectedItemIds.map((id) => ({ resourceItemId: id })),
         }),
       });
-      setSuccess("Platz erfolgreich gebucht.");
-      setSelectedItemId(null);
+      setSuccess(
+        `${selectedItemIds.length} Platz/Plätze erfolgreich gebucht.`
+      );
+      setSelectedItemIds([]);
       await loadAvailability();
     } catch (e) {
       setError((e as Error).message);
@@ -104,7 +112,12 @@ export default function PlaetzePage() {
       </section>
 
       <section className="card p-5">
-        <h2 className="mb-3 font-semibold">2. Platz auswählen</h2>
+        <h2 className="mb-3 font-semibold">
+          2. Plätze auswählen{" "}
+          <span className="font-normal text-slate-400">
+            (mehrere möglich)
+          </span>
+        </h2>
         {!rangeValid ? (
           <p className="text-sm text-slate-500">
             Bitte zuerst einen gültigen Zeitraum wählen.
@@ -130,13 +143,13 @@ export default function PlaetzePage() {
                   {cat.items.map((item) => {
                     const blocked = item.unavailableReason !== null;
                     const selectable = !blocked && item.available;
-                    const selected = selectedItemId === item.id;
+                    const selected = selectedItemIds.includes(item.id);
                     return (
                       <button
                         type="button"
                         key={item.id}
                         disabled={!selectable}
-                        onClick={() => setSelectedItemId(item.id)}
+                        onClick={() => toggleItem(item.id)}
                         className={[
                           "rounded-md border px-3 py-2 text-left text-sm transition",
                           selected
@@ -178,9 +191,13 @@ export default function PlaetzePage() {
         <button
           type="submit"
           className="btn-primary"
-          disabled={submitting || !selectedItemId}
+          disabled={submitting || selectedItemIds.length === 0}
         >
-          {submitting ? "Buche …" : "Platz buchen"}
+          {submitting
+            ? "Buche …"
+            : selectedItemIds.length > 1
+              ? `${selectedItemIds.length} Plätze buchen`
+              : "Platz buchen"}
         </button>
       </div>
     </form>

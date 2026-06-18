@@ -222,15 +222,6 @@ async function main() {
     ],
   });
 
-  // Mobile Festplatte (optional, Speicher).
-  await createCategory({
-    name: "Mobile Festplatte",
-    kind: "DEVICE",
-    description: "Mobiler Speicher für Aufnahmen.",
-    sortOrder: 17,
-    items: [{ label: "Mobile Festplatte" }],
-  });
-
   // Kleine Übersicht ausgeben.
   const itemCount = await prisma.resourceItem.count();
   const catCount = await prisma.resourceCategory.count();

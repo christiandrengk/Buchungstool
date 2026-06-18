@@ -1,4 +1,16 @@
 // Gemeinsame Eingabevalidierung für Buchungen.
+//
+// Eine Buchung besteht aus gemeinsamen Angaben (Name, Abteilung, Zeitraum) und
+// einer oder mehreren "Positionen" (lines). Jede Position ist entweder
+//   - ein konkretes Exemplar (Platzbuchung):      { resourceItemId }
+//   - eine Kategorie + Anzahl (Geräteausleihe):   { categoryId, quantity }
+// So lassen sich mehrere Plätze und/oder Geräte in EINEM Vorgang buchen.
+
+export interface BookingLine {
+  resourceItemId?: number;
+  categoryId?: number;
+  quantity?: number;
+}
 
 export interface ParsedBookingInput {
   bookerName: string;
@@ -7,16 +19,42 @@ export interface ParsedBookingInput {
   purpose: string | null;
   start: Date;
   end: Date;
-  // Entweder ein konkretes Exemplar (Platzbuchung) ...
-  resourceItemId?: number;
-  // ... oder Kategorie + Anzahl (Geräteausleihe mit Auto-Zuteilung).
-  categoryId?: number;
-  quantity?: number;
+  lines: BookingLine[];
 }
 
 export type ValidationResult =
   | { ok: true; value: ParsedBookingInput }
   | { ok: false; error: string };
+
+function parseLine(raw: any): { ok: true; line: BookingLine } | { ok: false; error: string } {
+  const hasItem = raw?.resourceItemId !== undefined && raw?.resourceItemId !== null;
+  const hasCategory = raw?.categoryId !== undefined && raw?.categoryId !== null;
+
+  if (hasItem === hasCategory) {
+    return {
+      ok: false,
+      error: "Jede Position braucht entweder ein Exemplar ODER eine Kategorie mit Anzahl.",
+    };
+  }
+
+  if (hasItem) {
+    const resourceItemId = Number(raw.resourceItemId);
+    if (!Number.isInteger(resourceItemId) || resourceItemId <= 0) {
+      return { ok: false, error: "Ungültiges Exemplar." };
+    }
+    return { ok: true, line: { resourceItemId } };
+  }
+
+  const categoryId = Number(raw.categoryId);
+  if (!Number.isInteger(categoryId) || categoryId <= 0) {
+    return { ok: false, error: "Ungültige Kategorie." };
+  }
+  const quantity = Number(raw.quantity ?? 1);
+  if (!Number.isInteger(quantity) || quantity < 1 || quantity > 50) {
+    return { ok: false, error: "Ungültige Anzahl (1–50)." };
+  }
+  return { ok: true, line: { categoryId, quantity } };
+}
 
 export function parseBookingInput(body: any): ValidationResult {
   const bookerName = String(body?.bookerName ?? "").trim();
@@ -39,45 +77,25 @@ export function parseBookingInput(body: any): ValidationResult {
     return { ok: false, error: "Das Ende muss nach dem Start liegen." };
   }
 
-  const hasItem =
-    body?.resourceItemId !== undefined && body?.resourceItemId !== null;
-  const hasCategory =
-    body?.categoryId !== undefined && body?.categoryId !== null;
+  // Positionen einsammeln: entweder body.lines[] oder eine einzelne Position
+  // direkt im Body (Abwärtskompatibilität).
+  const rawLines: any[] = Array.isArray(body?.lines)
+    ? body.lines
+    : [{ resourceItemId: body?.resourceItemId, categoryId: body?.categoryId, quantity: body?.quantity }];
 
-  if (hasItem === hasCategory) {
-    return {
-      ok: false,
-      error: "Entweder ein Exemplar ODER eine Kategorie mit Anzahl angeben.",
-    };
+  if (rawLines.length === 0) {
+    return { ok: false, error: "Bitte mindestens einen Platz oder ein Gerät auswählen." };
   }
 
-  const value: ParsedBookingInput = {
-    bookerName,
-    departmentId,
-    role,
-    purpose,
-    start,
-    end,
+  const lines: BookingLine[] = [];
+  for (const raw of rawLines) {
+    const parsed = parseLine(raw);
+    if (!parsed.ok) return { ok: false, error: parsed.error };
+    lines.push(parsed.line);
+  }
+
+  return {
+    ok: true,
+    value: { bookerName, departmentId, role, purpose, start, end, lines },
   };
-
-  if (hasItem) {
-    const resourceItemId = Number(body.resourceItemId);
-    if (!Number.isInteger(resourceItemId) || resourceItemId <= 0) {
-      return { ok: false, error: "Ungültiges Exemplar." };
-    }
-    value.resourceItemId = resourceItemId;
-  } else {
-    const categoryId = Number(body.categoryId);
-    if (!Number.isInteger(categoryId) || categoryId <= 0) {
-      return { ok: false, error: "Ungültige Kategorie." };
-    }
-    const quantity = Number(body.quantity ?? 1);
-    if (!Number.isInteger(quantity) || quantity < 1 || quantity > 50) {
-      return { ok: false, error: "Ungültige Anzahl (1–50)." };
-    }
-    value.categoryId = categoryId;
-    value.quantity = quantity;
-  }
-
-  return { ok: true, value };
 }

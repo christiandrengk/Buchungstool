@@ -64,8 +64,14 @@ export async function POST(req: NextRequest) {
       });
       if (!department) throw new BadRequestError("Unbekannte Abteilung.");
 
-      // Überschneidungsprüfung für ein konkretes Exemplar (innerhalb der Transaktion).
+      // Bereits in DIESEM Vorgang reservierte Exemplare (damit dasselbe Stück
+      // nicht doppelt zugeteilt wird).
+      const usedIds = new Set<number>();
+
+      // Überschneidungsprüfung für ein konkretes Exemplar (innerhalb der
+      // Transaktion und unter Berücksichtigung der schon reservierten Stücke).
       const isFree = async (itemId: number) => {
+        if (usedIds.has(itemId)) return false;
         const conflict = await tx.booking.findFirst({
           where: {
             resourceItemId: itemId,
@@ -77,53 +83,61 @@ export async function POST(req: NextRequest) {
         return conflict === null;
       };
 
-      const createdItemIds: number[] = [];
+      // Alle Positionen in konkrete Exemplar-IDs auflösen.
+      for (const line of input.lines) {
+        if (line.resourceItemId !== undefined) {
+          // --- Konkretes Exemplar (Platz) ---
+          const item = await tx.resourceItem.findUnique({
+            where: { id: line.resourceItemId },
+          });
+          if (!item) throw new BadRequestError("Unbekanntes Exemplar.");
+          if (item.unavailableReason !== null) {
+            throw new BadRequestError(
+              `"${item.label}" ist nicht buchbar (Sockel/Puffer).`
+            );
+          }
+          if (usedIds.has(item.id)) {
+            throw new BadRequestError(`"${item.label}" wurde doppelt ausgewählt.`);
+          }
+          if (!(await isFree(item.id))) {
+            throw new BookingConflictError(
+              `"${item.label}" ist im gewählten Zeitraum bereits belegt.`
+            );
+          }
+          usedIds.add(item.id);
+        } else {
+          // --- Kategorie + Anzahl (Geräte, Auto-Zuteilung) ---
+          const categoryId = line.categoryId!;
+          const quantity = line.quantity!;
+          const category = await tx.resourceCategory.findUnique({
+            where: { id: categoryId },
+          });
+          if (!category) throw new BadRequestError("Unbekannte Kategorie.");
 
-      if (input.resourceItemId !== undefined) {
-        // --- Platzbuchung / Buchung eines konkreten Exemplars ---
-        const item = await tx.resourceItem.findUnique({
-          where: { id: input.resourceItemId },
-        });
-        if (!item) throw new BadRequestError("Unbekanntes Exemplar.");
-        if (item.unavailableReason !== null) {
-          throw new BadRequestError(
-            "Dieses Exemplar ist nicht buchbar (Sockel/Puffer)."
-          );
-        }
-        if (!(await isFree(item.id))) {
-          throw new BookingConflictError(
-            "Dieser Zeitraum überschneidet sich mit einer bestehenden Buchung."
-          );
-        }
-        createdItemIds.push(item.id);
-      } else {
-        // --- Geräteausleihe mit Auto-Zuteilung ---
-        const categoryId = input.categoryId!;
-        const quantity = input.quantity!;
-        const category = await tx.resourceCategory.findUnique({
-          where: { id: categoryId },
-        });
-        if (!category) throw new BadRequestError("Unbekannte Kategorie.");
+          const candidates = await tx.resourceItem.findMany({
+            where: { categoryId, unavailableReason: null },
+            orderBy: { id: "asc" },
+            select: { id: true },
+          });
 
-        const candidates = await tx.resourceItem.findMany({
-          where: { categoryId, unavailableReason: null },
-          orderBy: { id: "asc" },
-          select: { id: true },
-        });
+          let assigned = 0;
+          for (const c of candidates) {
+            if (await isFree(c.id)) {
+              usedIds.add(c.id);
+              assigned++;
+              if (assigned >= quantity) break;
+            }
+          }
 
-        for (const c of candidates) {
-          if (await isFree(c.id)) {
-            createdItemIds.push(c.id);
-            if (createdItemIds.length >= quantity) break;
+          if (assigned < quantity) {
+            throw new BookingConflictError(
+              `${category.name}: nur ${assigned} von ${quantity} im gewählten Zeitraum frei.`
+            );
           }
         }
-
-        if (createdItemIds.length < quantity) {
-          throw new BookingConflictError(
-            `Nicht genügend freie Exemplare: ${createdItemIds.length} von ${quantity} verfügbar.`
-          );
-        }
       }
+
+      const createdItemIds = Array.from(usedIds);
 
       // Buchungen anlegen.
       const created = [];

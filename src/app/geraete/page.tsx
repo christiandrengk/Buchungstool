@@ -18,8 +18,8 @@ export default function GeraetePage() {
   });
   const [booker, setBooker] = useState<BookerData>(emptyBooker);
   const [categories, setCategories] = useState<CategoryAvailabilityDTO[]>([]);
-  const [selectedCat, setSelectedCat] = useState<number | null>(null);
-  const [quantity, setQuantity] = useState(1);
+  // Pro Kategorie gewünschte Anzahl (catId -> Anzahl). 0/fehlt = nicht gewählt.
+  const [quantities, setQuantities] = useState<Record<number, number>>({});
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);
@@ -55,18 +55,26 @@ export default function GeraetePage() {
 
   useEffect(() => {
     loadAvailability();
-    setSelectedCat(null);
-    setQuantity(1);
+    setQuantities({});
   }, [loadAvailability]);
 
-  const selectedCategory = categories.find((c) => c.id === selectedCat) ?? null;
+  const setQuantityFor = (catId: number, value: number, max: number) => {
+    const q = Math.max(0, Math.min(max, Math.floor(value || 0)));
+    setQuantities((prev) => ({ ...prev, [catId]: q }));
+  };
+
+  // Gewählte Positionen (Anzahl >= 1).
+  const lines = Object.entries(quantities)
+    .map(([id, qty]) => ({ categoryId: Number(id), quantity: qty }))
+    .filter((l) => l.quantity >= 1);
+  const totalSelected = lines.reduce((s, l) => s + l.quantity, 0);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setSuccess(null);
-    if (!selectedCat) {
-      setError("Bitte eine Gerätekategorie auswählen.");
+    if (lines.length === 0) {
+      setError("Bitte mindestens ein Gerät (Anzahl ≥ 1) auswählen.");
       return;
     }
     setSubmitting(true);
@@ -80,15 +88,13 @@ export default function GeraetePage() {
           purpose: booker.purpose,
           start: localInputToISO(range.start),
           end: localInputToISO(range.end),
-          categoryId: selectedCat,
-          quantity,
+          lines,
         }),
       });
       setSuccess(
         `${res.bookings.length} Exemplar(e) erfolgreich ausgeliehen.`
       );
-      setSelectedCat(null);
-      setQuantity(1);
+      setQuantities({});
       await loadAvailability();
     } catch (e) {
       setError((e as Error).message);
@@ -102,8 +108,9 @@ export default function GeraetePage() {
       <section className="card p-5">
         <h1 className="text-xl font-semibold">Gerät ausleihen</h1>
         <p className="mt-1 text-sm text-slate-600">
-          Kategorie und Anzahl wählen – das System teilt automatisch freie
-          Exemplare zu. Sockel-/Puffer-Geräte sind nicht buchbar.
+          Beliebig viele Kategorien mit Anzahl wählen – das System teilt
+          automatisch freie Exemplare zu. Sockel-/Puffer-Geräte sind nicht
+          buchbar.
         </p>
       </section>
 
@@ -113,7 +120,12 @@ export default function GeraetePage() {
       </section>
 
       <section className="card p-5">
-        <h2 className="mb-3 font-semibold">2. Gerätekategorie auswählen</h2>
+        <h2 className="mb-3 font-semibold">
+          2. Geräte auswählen{" "}
+          <span className="font-normal text-slate-400">
+            (mehrere Kategorien möglich)
+          </span>
+        </h2>
         {!rangeValid ? (
           <p className="text-sm text-slate-500">
             Bitte zuerst einen gültigen Zeitraum wählen.
@@ -123,91 +135,81 @@ export default function GeraetePage() {
         ) : (
           <div className="space-y-2">
             {categories.map((cat) => {
-              const selected = selectedCat === cat.id;
               const none = cat.available === 0;
+              const qty = quantities[cat.id] ?? 0;
+              const active = qty >= 1;
               return (
-                <label
+                <div
                   key={cat.id}
                   className={[
-                    "flex cursor-pointer flex-col gap-1 rounded-md border px-4 py-3 transition sm:flex-row sm:items-center sm:justify-between",
-                    selected
+                    "flex flex-col gap-2 rounded-md border px-4 py-3 transition sm:flex-row sm:items-center sm:justify-between",
+                    active
                       ? "border-brand bg-brand/5 ring-1 ring-brand"
-                      : "border-slate-200 hover:border-brand",
+                      : "border-slate-200",
                     none ? "opacity-60" : "",
                   ].join(" ")}
                 >
-                  <div className="flex items-start gap-3">
-                    <input
-                      type="radio"
-                      name="category"
-                      className="mt-1"
-                      checked={selected}
-                      disabled={none}
-                      onChange={() => {
-                        setSelectedCat(cat.id);
-                        setQuantity(1);
-                      }}
-                    />
-                    <div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-medium">{cat.name}</span>
-                        <OwnerBadge owner={cat.ownerDepartment} />
-                        {!cat.studentsAllowed && (
-                          <span className="badge bg-rose-100 text-rose-700">
-                            nicht für Studierende (später)
-                          </span>
-                        )}
-                      </div>
-                      {cat.description && (
-                        <p className="text-xs text-slate-400">
-                          {cat.description}
-                        </p>
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-medium">{cat.name}</span>
+                      <OwnerBadge owner={cat.ownerDepartment} />
+                      {!cat.studentsAllowed && (
+                        <span className="badge bg-rose-100 text-rose-700">
+                          nicht für Studierende (später)
+                        </span>
                       )}
                     </div>
+                    {cat.description && (
+                      <p className="text-xs text-slate-400">{cat.description}</p>
+                    )}
+                    <div className="mt-1 text-sm">
+                      <span
+                        className={
+                          none ? "text-red-500" : "font-medium text-green-600"
+                        }
+                      >
+                        {cat.available} frei
+                      </span>{" "}
+                      <span className="text-slate-400">
+                        / {cat.bookable} buchbar / {cat.total} gesamt
+                      </span>
+                    </div>
                   </div>
-                  <div className="shrink-0 text-sm text-slate-600">
-                    <span
-                      className={
-                        none ? "text-red-500" : "font-medium text-green-600"
-                      }
+                  <div className="flex shrink-0 items-center gap-2">
+                    <label
+                      className="text-sm text-slate-600"
+                      htmlFor={`qty-${cat.id}`}
                     >
-                      {cat.available} frei
-                    </span>{" "}
-                    <span className="text-slate-400">
-                      / {cat.bookable} buchbar / {cat.total} gesamt
-                    </span>
+                      Anzahl
+                    </label>
+                    <input
+                      id={`qty-${cat.id}`}
+                      type="number"
+                      className="input w-20"
+                      min={0}
+                      max={cat.available}
+                      disabled={none}
+                      value={qty}
+                      onChange={(e) =>
+                        setQuantityFor(
+                          cat.id,
+                          Number(e.target.value),
+                          cat.available
+                        )
+                      }
+                    />
                   </div>
-                </label>
+                </div>
               );
             })}
           </div>
         )}
 
-        {selectedCategory && (
-          <div className="mt-4 max-w-xs">
-            <label className="label" htmlFor="quantity">
-              Anzahl ({selectedCategory.available} frei)
-            </label>
-            <input
-              id="quantity"
-              type="number"
-              className="input"
-              min={1}
-              max={selectedCategory.available}
-              value={quantity}
-              onChange={(e) =>
-                setQuantity(
-                  Math.max(
-                    1,
-                    Math.min(
-                      selectedCategory.available,
-                      Number(e.target.value) || 1
-                    )
-                  )
-                )
-              }
-            />
-          </div>
+        {totalSelected > 0 && (
+          <p className="mt-3 text-sm font-medium text-slate-700">
+            Ausgewählt: {totalSelected} Exemplar(e) aus {lines.length}{" "}
+            Kategorie(n).
+          </p>
         )}
       </section>
 
@@ -223,9 +225,13 @@ export default function GeraetePage() {
         <button
           type="submit"
           className="btn-primary"
-          disabled={submitting || !selectedCat}
+          disabled={submitting || lines.length === 0}
         >
-          {submitting ? "Buche …" : "Gerät(e) ausleihen"}
+          {submitting
+            ? "Buche …"
+            : totalSelected > 1
+              ? `${totalSelected} Geräte ausleihen`
+              : "Gerät ausleihen"}
         </button>
       </div>
     </form>
