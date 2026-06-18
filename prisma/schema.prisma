@@ -1,0 +1,98 @@
+// Datenmodell für das Buchungs- und Ausleihtool (Forschungsraum).
+//
+// Designprinzip: v1 ist bewusst schlank, aber das Schema legt die Strukturen
+// für spätere Erweiterungen bereits an (Rollen, Auth, Priorisierung,
+// Abteilungs-Eigentümerschaft). Diese Felder existieren, werden in v1 aber
+// NICHT erzwungen.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  // Start mit SQLite. Für PostgreSQL nur provider + DATABASE_URL ändern –
+  // das übrige Datenmodell bleibt identisch.
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Hinweis: SQLite kennt keine nativen Enums. Wir verwenden daher String-Felder
+// mit fest definierten, im Code validierten Werten. Bei der späteren Migration
+// auf PostgreSQL können diese 1:1 in echte Enums überführt werden.
+//
+//   ResourceKind      : "PLACE" (Platz im Raum) | "DEVICE" (Ausleihgerät)
+//   UnavailableReason : "SOCKEL" (bleibt im Raum) | "PUFFER" (nicht vorab buchbar)
+//   Role              : "STAFF" (Mitarbeitende) | "STUDENT" (Studierende)
+
+// Die 11 Abteilungen des Instituts.
+model Department {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  shortName String?
+  createdAt DateTime @default(now())
+
+  ownedCategories ResourceCategory[] @relation("CategoryOwner")
+  ownedItems      ResourceItem[]     @relation("ItemOwner")
+  bookings        Booking[]
+}
+
+// Eine buchbare Kategorie (z. B. "Testplatz", "iPad", "Meeting Owl").
+model ResourceCategory {
+  id          Int     @id @default(autoincrement())
+  name        String  @unique
+  kind        String // "PLACE" | "DEVICE"
+  description String?
+  sortOrder   Int     @default(0)
+
+  // Vorbereitet für spätere Rollenlogik (z. B. Meeting Owl / 3D-Brille
+  // nicht für Studierende). In v1 NICHT durchgesetzt.
+  studentsAllowed Boolean @default(true)
+
+  // Optionale Standard-Eigentümerschaft auf Kategorieebene.
+  ownerDepartmentId Int?
+  ownerDepartment   Department? @relation("CategoryOwner", fields: [ownerDepartmentId], references: [id])
+
+  items ResourceItem[]
+}
+
+// Ein konkretes Exemplar einer Kategorie (z. B. "iPad #03", "Testplatz 1").
+model ResourceItem {
+  id         Int              @id @default(autoincrement())
+  label      String
+  categoryId Int
+  category   ResourceCategory @relation(fields: [categoryId], references: [id])
+  note       String?
+
+  // Wenn gesetzt, ist das Exemplar NICHT buchbar (Sockel oder Puffer).
+  // null = normal buchbar. Werte: "SOCKEL" | "PUFFER".
+  unavailableReason String?
+
+  // Eigentümerschaft auf Stückebene (überschreibt ggf. die Kategorie).
+  ownerDepartmentId Int?
+  ownerDepartment   Department? @relation("ItemOwner", fields: [ownerDepartmentId], references: [id])
+
+  bookings Booking[]
+}
+
+// Eine Buchung eines konkreten Exemplars in einem Zeitraum.
+model Booking {
+  id             Int          @id @default(autoincrement())
+  resourceItemId Int
+  resourceItem   ResourceItem @relation(fields: [resourceItemId], references: [id])
+
+  // In v1 ohne Login: Pflichtangaben Name + Abteilung.
+  bookerName   String
+  departmentId Int
+  department   Department @relation(fields: [departmentId], references: [id])
+
+  // Vorbereitet für spätere Rollenlogik, in v1 Default "STAFF".
+  // Werte: "STAFF" | "STUDENT".
+  role String @default("STAFF")
+
+  purpose   String?
+  startTime DateTime
+  endTime   DateTime
+  createdAt DateTime @default(now())
+
+  @@index([resourceItemId, startTime, endTime])
+}
