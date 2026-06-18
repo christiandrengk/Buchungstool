@@ -34,6 +34,16 @@ export default function AdminPage() {
   // Eingaben der "Hinzufügen"-Formulare je Kategorie.
   const [addForms, setAddForms] = useState<Record<number, AddForm>>({});
   const [addingCat, setAddingCat] = useState<number | null>(null);
+  // Formular "Neue Kategorie".
+  const [newCat, setNewCat] = useState({
+    name: "",
+    kind: "DEVICE" as "DEVICE" | "PLACE",
+    description: "",
+    ownerId: "",
+    studentsAllowed: true,
+  });
+  const [creatingCat, setCreatingCat] = useState(false);
+  const [deletingCat, setDeletingCat] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -134,6 +144,57 @@ export default function AdminPage() {
     }
   };
 
+  const createCategory = async () => {
+    if (!newCat.name.trim()) {
+      setError("Bitte einen Namen für die Kategorie angeben.");
+      return;
+    }
+    setCreatingCat(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      const created = await fetchJSON<AdminCategory>("/api/admin/categories", {
+        method: "POST",
+        body: JSON.stringify({
+          name: newCat.name.trim(),
+          kind: newCat.kind,
+          description: newCat.description.trim() || null,
+          ownerDepartmentId: newCat.ownerId || null,
+          studentsAllowed: newCat.studentsAllowed,
+        }),
+      });
+      setCategories((prev) => [...prev, created]);
+      setNewCat({
+        name: "",
+        kind: "DEVICE",
+        description: "",
+        ownerId: "",
+        studentsAllowed: true,
+      });
+      setSuccess(`Kategorie „${created.name}" wurde angelegt.`);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setCreatingCat(false);
+    }
+  };
+
+  const deleteCategory = async (cat: AdminCategory) => {
+    if (!confirm(`Kategorie „${cat.name}" wirklich löschen?`)) return;
+    setDeletingCat(cat.id);
+    setError(null);
+    setSuccess(null);
+    try {
+      await fetchJSON(`/api/admin/categories/${cat.id}`, { method: "DELETE" });
+      setCategories((prev) => prev.filter((c) => c.id !== cat.id));
+      setSuccess(`Kategorie „${cat.name}" wurde gelöscht.`);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setDeletingCat(null);
+    }
+  };
+
   const updateForm = (catId: number, patch: Partial<AddForm>) =>
     setAddForms((prev) => {
       const base = prev[catId] ?? { label: "", ownerId: "" };
@@ -155,6 +216,92 @@ export default function AdminPage() {
       {error && <Notice type="error">{error}</Notice>}
       {success && <Notice type="success">{success}</Notice>}
 
+      {/* Neue Kategorie anlegen */}
+      <section className="card p-5">
+        <h2 className="mb-3 font-semibold">Neue Kategorie anlegen</h2>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label className="label" htmlFor="cat-name">
+              Name *
+            </label>
+            <input
+              id="cat-name"
+              className="input"
+              placeholder="z. B. Beamer"
+              value={newCat.name}
+              onChange={(e) => setNewCat({ ...newCat, name: e.target.value })}
+            />
+          </div>
+          <div>
+            <label className="label" htmlFor="cat-kind">
+              Art
+            </label>
+            <select
+              id="cat-kind"
+              className="select"
+              value={newCat.kind}
+              onChange={(e) =>
+                setNewCat({ ...newCat, kind: e.target.value as "DEVICE" | "PLACE" })
+              }
+            >
+              <option value="DEVICE">Gerät (Ausleihe, Auto-Zuteilung)</option>
+              <option value="PLACE">Platz (einzeln wählbar)</option>
+            </select>
+          </div>
+          <div>
+            <label className="label" htmlFor="cat-owner">
+              Standard-Eigentümer (optional)
+            </label>
+            <select
+              id="cat-owner"
+              className="select"
+              value={newCat.ownerId}
+              onChange={(e) => setNewCat({ ...newCat, ownerId: e.target.value })}
+            >
+              <option value="">— keine —</option>
+              {departments.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="label" htmlFor="cat-desc">
+              Beschreibung (optional)
+            </label>
+            <input
+              id="cat-desc"
+              className="input"
+              value={newCat.description}
+              onChange={(e) =>
+                setNewCat({ ...newCat, description: e.target.value })
+              }
+            />
+          </div>
+        </div>
+        <label className="mt-3 flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={newCat.studentsAllowed}
+            onChange={(e) =>
+              setNewCat({ ...newCat, studentsAllowed: e.target.checked })
+            }
+          />
+          Für Studierende erlaubt (für spätere Rollenlogik, in v1 ohne Wirkung)
+        </label>
+        <div className="mt-4 flex justify-end">
+          <button
+            type="button"
+            className="btn-primary"
+            disabled={creatingCat}
+            onClick={createCategory}
+          >
+            {creatingCat ? "Lege an …" : "Kategorie anlegen"}
+          </button>
+        </div>
+      </section>
+
       {loading ? (
         <p className="text-sm text-slate-500">Lädt …</p>
       ) : (
@@ -162,12 +309,27 @@ export default function AdminPage() {
           const form = addForms[cat.id] ?? { label: "", ownerId: "" };
           return (
             <section key={cat.id} className="card p-5">
-              <h2 className="mb-3 font-semibold">
-                {cat.name}{" "}
-                <span className="text-sm font-normal text-slate-400">
-                  ({cat.items.length} Stück)
-                </span>
-              </h2>
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <h2 className="font-semibold">
+                  {cat.name}{" "}
+                  <span className="text-sm font-normal text-slate-400">
+                    ({cat.items.length} Stück)
+                  </span>
+                </h2>
+                <button
+                  type="button"
+                  disabled={deletingCat === cat.id || cat.items.length > 0}
+                  onClick={() => deleteCategory(cat)}
+                  title={
+                    cat.items.length > 0
+                      ? "Erst alle Exemplare entfernen, dann ist die Kategorie löschbar."
+                      : "Kategorie löschen"
+                  }
+                  className="rounded-md border border-red-300 bg-white px-3 py-1.5 text-xs font-medium text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Kategorie löschen
+                </button>
+              </div>
               <ul className="divide-y divide-slate-100">
                 {cat.items.map((item) => (
                   <li
