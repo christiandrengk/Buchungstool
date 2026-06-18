@@ -7,11 +7,11 @@ import {
   localInputToISO,
 } from "@/lib/format";
 import { BookerFields, BookerData, emptyBooker } from "@/components/BookerFields";
-import { DayRangePicker, DayRangeValue } from "@/components/DayRangePicker";
+import { DateRangePicker, DateRangeValue } from "@/components/DateRangePicker";
 import { Notice, OwnerBadge, ReasonBadge } from "@/components/common";
 
 export default function GeraetePage() {
-  const [range, setRange] = useState<DayRangeValue>({ start: "", end: "" });
+  const [range, setRange] = useState<DateRangeValue>({ start: "", end: "" });
   const [booker, setBooker] = useState<BookerData>(emptyBooker);
   const [categories, setCategories] = useState<CategoryAvailabilityDTO[]>([]);
   // Pro Kategorie gewünschte Anzahl (catId -> Anzahl). 0/fehlt = nicht gewählt.
@@ -112,7 +112,7 @@ export default function GeraetePage() {
 
       <section className="card p-5">
         <h2 className="mb-3 font-semibold">1. Zeitraum</h2>
-        <DayRangePicker value={range} onChange={setRange} />
+        <DateRangePicker value={range} onChange={setRange} />
       </section>
 
       <section className="card p-5">
