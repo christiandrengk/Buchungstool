@@ -18,13 +18,17 @@ Transparenz – alle sehen alle Buchungen.
 
 ## Funktionsumfang v1
 
-- **Platzbuchung**: 4 Testplätze + 2 Arbeitsplätze, stundenweise mit konkreter Uhrzeit.
-- **Geräteausleihe**: alle Gerätekategorien, stundenweise; Anzahl wählbar, das System
-  teilt automatisch freie Exemplare zu. Anzeige *gesamt / buchbar / aktuell frei*.
+- **Zeitraum-Auswahl**: Monats-Kalender, Tage per Maus aufziehen (einzeln oder
+  mehrtägig); optional konkrete Uhrzeiten, sonst ganztägig (07–21 Uhr).
+- **Platzbuchung**: 4 Testplätze + 2 Arbeitsplätze; mehrere gleichzeitig wählbar.
+- **Geräteausleihe**: alle Gerätekategorien; mehrere Kategorien mit Anzahl in einem
+  Vorgang, das System teilt automatisch freie Exemplare zu. Anzeige
+  *gesamt / buchbar / aktuell frei*.
 - **Transparenz**: alle Buchungen (wer, was, wann, welche Abteilung) für alle sichtbar.
-- **Kein Login**: Pflichtfelder Name + Abteilung (Dropdown der 11 Abteilungen).
-- **Sockel-/Puffer-Kennzeichnung**: Exemplare als „nicht buchbar" markierbar; in der
-  Verfügbarkeit ausgegraut/gekennzeichnet. Pflege über die Seite **Verwaltung**.
+- **Kein Login**: Pflichtfelder Name + E-Mail + Abteilung (Dropdown der 11 Abteilungen).
+- **Verwaltung**: Kategorien und Geräte anlegen/entfernen, Eigentümer zuordnen,
+  Exemplare als Sockel/Puffer („nicht buchbar") markieren – Pflege über die Seite
+  **Verwaltung**. Nicht buchbare Exemplare werden in der Verfügbarkeit ausgegraut.
 - **Konfliktprüfung**: serverseitig, transaktionssicher – keine Doppelbuchungen
   desselben Platzes/Exemplars bei Zeitüberschneidung.
 - **E-Mail-Pflichtfeld**: für Buchungsbestätigung/Erinnerung (Versand folgt in
@@ -40,15 +44,17 @@ Transparenz – alle sehen alle Buchungen.
 
 - **Department** – die 11 Abteilungen.
 - **ResourceCategory** – buchbare Kategorie (`PLACE` oder `DEVICE`), optional mit
-  Eigentümer-Abteilung und `studentsAllowed` (für spätere Rollenlogik).
+  Eigentümer-Abteilung, `studentsAllowed` und `studentsInRoomOnly` (Regeln für
+  Studierende).
 - **ResourceItem** – konkretes Exemplar (z. B. „iPad #03"), optional `unavailableReason`
   (`SOCKEL`/`PUFFER`) und eigene Eigentümer-Abteilung.
 - **Booking** – Buchung eines Exemplars in einem Zeitraum, mit `bookerName`,
-  `department` und (vorbereiteter) `role`.
+  `bookerEmail`, `department`, `role` und `usageType` (`TAKEOUT`/`IN_ROOM`).
 
-**Bewusst für später vorbereitet, in v1 nicht erzwungen:** Rollen (`Role`-Enum),
-`studentsAllowed`, Eigentümerschaft. Auth/Priorisierung lassen sich darauf aufbauen,
-ohne das Schema umzubauen.
+**Bewusst für später vorbereitet, in v1 nicht erzwungen:** vollständige Rollenlogik
+inkl. **Login** (die Rolle wird in v1 selbst gewählt; die Regeln greifen serverseitig,
+aber ohne Identitätsprüfung). Eigentümerschaft und Priorisierung lassen sich auf dem
+bestehenden Schema aufbauen.
 
 Schema: [`prisma/schema.prisma`](prisma/schema.prisma) · Startbestand: [`prisma/seed.ts`](prisma/seed.ts)
 
@@ -81,6 +87,11 @@ npm run db:reset    # DB löschen, neu migrieren und automatisch neu seeden
 
 (Alternativ einfach die Datei `prisma/dev.db` löschen und `db:migrate` + `db:seed`
 erneut ausführen.)
+
+> **Wichtig nach einem `git pull` mit Datenbank-Änderungen:** Wenn neue Felder/Spalten
+> hinzugekommen sind (z. B. E-Mail, Nutzungsart), die alte `dev.db` aber noch besteht,
+> schlagen Abfragen fehl (z. B. bleiben Platz-/Geräteauswahl leer). Dann einmal
+> `npm run db:reset` ausführen und den Dev-Server neu starten.
 
 Datenbank-Inhalte komfortabel anschauen/bearbeiten:
 
