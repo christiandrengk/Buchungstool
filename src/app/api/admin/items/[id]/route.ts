@@ -46,3 +46,38 @@ export async function PATCH(
     unavailableReason: updated.unavailableReason,
   });
 }
+
+// DELETE /api/admin/items/:id
+// Entfernt ein Exemplar – nur, wenn keine Buchungen daran hängen.
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const id = Number(params.id);
+  if (!Number.isInteger(id) || id <= 0) {
+    return NextResponse.json({ error: "Ungültige ID." }, { status: 400 });
+  }
+
+  const existing = await prisma.resourceItem.findUnique({ where: { id } });
+  if (!existing) {
+    return NextResponse.json(
+      { error: "Exemplar nicht gefunden." },
+      { status: 404 }
+    );
+  }
+
+  const bookingCount = await prisma.booking.count({
+    where: { resourceItemId: id },
+  });
+  if (bookingCount > 0) {
+    return NextResponse.json(
+      {
+        error: `Nicht löschbar: An diesem Exemplar hängen noch ${bookingCount} Buchung(en). Bitte zuerst stornieren.`,
+      },
+      { status: 409 }
+    );
+  }
+
+  await prisma.resourceItem.delete({ where: { id } });
+  return NextResponse.json({ ok: true });
+}
