@@ -1,0 +1,23 @@
+{
+  "name": "Buchungstool (Forschungsraum)",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:22",
+
+  // Port 3000 (Next.js) im Browser verfügbar machen und Vorschau öffnen.
+  "forwardPorts": [3000],
+  "portsAttributes": {
+    "3000": {
+      "label": "Buchungstool",
+      "onAutoForward": "openPreview"
+    }
+  },
+
+  // Einmalige Einrichtung beim Erstellen des Codespace:
+  // Abhängigkeiten installieren, .env anlegen, Datenbank migrieren + seeden.
+  "postCreateCommand": "npm install && cp -n .env.example .env && npx prisma migrate deploy && npm run db:seed",
+
+  "customizations": {
+    "vscode": {
+      "extensions": ["Prisma.prisma", "esbenp.prettier-vscode"]
+    }
+  }
+}

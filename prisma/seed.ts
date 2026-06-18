@@ -46,10 +46,9 @@ async function main() {
 
   // "Mathe" = Inklusive Mathematikdidaktik (Eigentümerin von Kameras, Stativen, iPads).
   const mathe = departments["Mathe"];
-  // Im ursprünglichen Auftrag "PKGB" genannt: Eigentümerin von 3D-Brille,
-  // Sony-Kameras und Mikrofonen. Welche der 11 Abteilungen das ist, ist noch
-  // offen – bis zur Klärung ohne zugeordnete Eigentümerin (null).
-  const pkgb: number | null = null;
+  // Im ursprünglichen Auftrag "PKGB" genannt = "Pädagogik im Kontext geistiger
+  // Behinderung": Eigentümerin von 3D-Brille, Sony-Kameras und Mikrofonen.
+  const pkgb: number | null = departments["Geistige Entwicklung"];
 
   // Hilfsfunktion: Kategorie + Exemplare anlegen.
   async function createCategory(opts: {
