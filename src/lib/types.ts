@@ -3,6 +3,7 @@
 export type Kind = "PLACE" | "DEVICE";
 export type Reason = "SOCKEL" | "PUFFER";
 export type Role = "STAFF" | "STUDENT";
+export type UsageType = "TAKEOUT" | "IN_ROOM";
 
 export interface DepartmentDTO {
   id: number;
@@ -26,6 +27,7 @@ export interface CategoryAvailabilityDTO {
   kind: Kind;
   description: string | null;
   studentsAllowed: boolean;
+  studentsInRoomOnly: boolean;
   ownerDepartment: string | null;
   /** Anzahl Exemplare insgesamt */
   total: number;
@@ -41,6 +43,7 @@ export interface BookingDTO {
   bookerName: string;
   department: string;
   role: Role;
+  usageType: UsageType;
   purpose: string | null;
   startTime: string;
   endTime: string;

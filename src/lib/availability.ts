@@ -117,6 +117,7 @@ export async function getAvailability(
       kind: cat.kind as Kind,
       description: cat.description,
       studentsAllowed: cat.studentsAllowed,
+      studentsInRoomOnly: cat.studentsInRoomOnly,
       ownerDepartment:
         cat.ownerDepartment?.shortName ?? cat.ownerDepartment?.name ?? null,
       total: cat.items.length,

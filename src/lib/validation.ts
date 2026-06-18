@@ -14,12 +14,25 @@ export interface BookingLine {
 
 export interface ParsedBookingInput {
   bookerName: string;
+  bookerEmail: string;
   departmentId: number;
   role: "STAFF" | "STUDENT";
+  usageType: "TAKEOUT" | "IN_ROOM";
   purpose: string | null;
   start: Date;
   end: Date;
   lines: BookingLine[];
+}
+
+// Maximale Ausleihdauer für Studierende (Kalendertage).
+export const STUDENT_MAX_DAYS = 7;
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/** Anzahl angebrochener Kalendertage zwischen Start und Ende (aufgerundet). */
+export function calendarDays(start: Date, end: Date): number {
+  const ms = end.getTime() - start.getTime();
+  return Math.ceil(ms / (24 * 60 * 60 * 1000));
 }
 
 export type ValidationResult =
@@ -60,12 +73,19 @@ export function parseBookingInput(body: any): ValidationResult {
   const bookerName = String(body?.bookerName ?? "").trim();
   if (!bookerName) return { ok: false, error: "Bitte einen Namen angeben." };
 
+  const bookerEmail = String(body?.bookerEmail ?? "").trim();
+  if (!bookerEmail) return { ok: false, error: "Bitte eine E-Mail-Adresse angeben." };
+  if (!EMAIL_RE.test(bookerEmail)) {
+    return { ok: false, error: "Bitte eine gültige E-Mail-Adresse angeben." };
+  }
+
   const departmentId = Number(body?.departmentId);
   if (!Number.isInteger(departmentId) || departmentId <= 0) {
     return { ok: false, error: "Bitte eine Abteilung auswählen." };
   }
 
   const role = body?.role === "STUDENT" ? "STUDENT" : "STAFF";
+  const usageType = body?.usageType === "IN_ROOM" ? "IN_ROOM" : "TAKEOUT";
   const purpose = body?.purpose ? String(body.purpose).trim() || null : null;
 
   const start = new Date(body?.start);
@@ -75,6 +95,14 @@ export function parseBookingInput(body: any): ValidationResult {
   }
   if (end <= start) {
     return { ok: false, error: "Das Ende muss nach dem Start liegen." };
+  }
+
+  // Studierende: maximale Ausleih-/Buchungsdauer.
+  if (role === "STUDENT" && calendarDays(start, end) > STUDENT_MAX_DAYS) {
+    return {
+      ok: false,
+      error: `Studierende können maximal ${STUDENT_MAX_DAYS} Kalendertage buchen.`,
+    };
   }
 
   // Positionen einsammeln: entweder body.lines[] oder eine einzelne Position
@@ -96,6 +124,16 @@ export function parseBookingInput(body: any): ValidationResult {
 
   return {
     ok: true,
-    value: { bookerName, departmentId, role, purpose, start, end, lines },
+    value: {
+      bookerName,
+      bookerEmail,
+      departmentId,
+      role,
+      usageType,
+      purpose,
+      start,
+      end,
+      lines,
+    },
   };
 }

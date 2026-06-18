@@ -48,6 +48,10 @@ model ResourceCategory {
   // nicht für Studierende). In v1 NICHT durchgesetzt.
   studentsAllowed Boolean @default(true)
 
+  // Studierende dürfen diese Kategorie nur "im Raum" nutzen, nicht ausleihen
+  // (Mitnahme). Mitarbeitende sind nicht eingeschränkt. (z. B. Owl, 3D-Brille)
+  studentsInRoomOnly Boolean @default(false)
+
   // Optionale Standard-Eigentümerschaft auf Kategorieebene.
   ownerDepartmentId Int?
   ownerDepartment   Department? @relation("CategoryOwner", fields: [ownerDepartmentId], references: [id])
@@ -80,14 +84,18 @@ model Booking {
   resourceItemId Int
   resourceItem   ResourceItem @relation(fields: [resourceItemId], references: [id])
 
-  // In v1 ohne Login: Pflichtangaben Name + Abteilung.
+  // In v1 ohne Login: Pflichtangaben Name + Abteilung + E-Mail.
   bookerName   String
+  bookerEmail  String
   departmentId Int
   department   Department @relation(fields: [departmentId], references: [id])
 
   // Vorbereitet für spätere Rollenlogik, in v1 Default "STAFF".
   // Werte: "STAFF" | "STUDENT".
   role String @default("STAFF")
+
+  // Nutzungsart: "TAKEOUT" (Ausleihe/Mitnahme) | "IN_ROOM" (Nutzung im Raum).
+  usageType String @default("TAKEOUT")
 
   purpose   String?
   startTime DateTime

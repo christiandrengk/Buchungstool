@@ -41,6 +41,7 @@ export default function AdminPage() {
     description: "",
     ownerId: "",
     studentsAllowed: true,
+    studentsInRoomOnly: false,
   });
   const [creatingCat, setCreatingCat] = useState(false);
   const [deletingCat, setDeletingCat] = useState<number | null>(null);
@@ -161,6 +162,7 @@ export default function AdminPage() {
           description: newCat.description.trim() || null,
           ownerDepartmentId: newCat.ownerId || null,
           studentsAllowed: newCat.studentsAllowed,
+          studentsInRoomOnly: newCat.studentsInRoomOnly,
         }),
       });
       setCategories((prev) => [...prev, created]);
@@ -170,6 +172,7 @@ export default function AdminPage() {
         description: "",
         ownerId: "",
         studentsAllowed: true,
+        studentsInRoomOnly: false,
       });
       setSuccess(`Kategorie „${created.name}" wurde angelegt.`);
     } catch (e) {
@@ -288,7 +291,18 @@ export default function AdminPage() {
               setNewCat({ ...newCat, studentsAllowed: e.target.checked })
             }
           />
-          Für Studierende erlaubt (für spätere Rollenlogik, in v1 ohne Wirkung)
+          Für Studierende erlaubt
+        </label>
+        <label className="mt-2 flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={newCat.studentsInRoomOnly}
+            onChange={(e) =>
+              setNewCat({ ...newCat, studentsInRoomOnly: e.target.checked })
+            }
+          />
+          Studierende nur „Nutzung im Raum" (keine Ausleihe) – z. B. Owl,
+          3D-Brille
         </label>
         <div className="mt-4 flex justify-end">
           <button

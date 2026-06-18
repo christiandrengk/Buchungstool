@@ -29,6 +29,17 @@ export function BookingsList({
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <KindBadge kind={b.kind} />
+              {b.kind === "DEVICE" && (
+                <span
+                  className={`badge ${
+                    b.usageType === "IN_ROOM"
+                      ? "bg-amber-100 text-amber-800"
+                      : "bg-indigo-100 text-indigo-800"
+                  }`}
+                >
+                  {b.usageType === "IN_ROOM" ? "im Raum" : "Ausleihe"}
+                </span>
+              )}
               <span className="font-medium text-slate-900">
                 {b.categoryName}
               </span>

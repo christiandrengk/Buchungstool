@@ -73,8 +73,10 @@ export default function PlaetzePage() {
         method: "POST",
         body: JSON.stringify({
           bookerName: booker.bookerName,
+          bookerEmail: booker.bookerEmail,
           departmentId: Number(booker.departmentId),
           role: booker.role,
+          usageType: "IN_ROOM", // Plätze werden immer im Raum genutzt
           purpose: booker.purpose,
           start: localInputToISO(range.start),
           end: localInputToISO(range.end),

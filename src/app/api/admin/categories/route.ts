@@ -26,6 +26,7 @@ export async function POST(req: NextRequest) {
     ? String(body.description).trim() || null
     : null;
   const studentsAllowed = body?.studentsAllowed !== false; // Default true
+  const studentsInRoomOnly = body?.studentsInRoomOnly === true; // Default false
 
   let ownerDepartmentId: number | null = null;
   if (
@@ -56,7 +57,15 @@ export async function POST(req: NextRequest) {
 
   try {
     const category = await prisma.resourceCategory.create({
-      data: { name, kind, description, studentsAllowed, ownerDepartmentId, sortOrder },
+      data: {
+        name,
+        kind,
+        description,
+        studentsAllowed,
+        studentsInRoomOnly,
+        ownerDepartmentId,
+        sortOrder,
+      },
     });
     return NextResponse.json(
       {

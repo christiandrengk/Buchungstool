@@ -6,6 +6,7 @@ import { fetchJSON } from "@/lib/format";
 
 export interface BookerData {
   bookerName: string;
+  bookerEmail: string;
   departmentId: string;
   role: "STAFF" | "STUDENT";
   purpose: string;
@@ -13,6 +14,7 @@ export interface BookerData {
 
 export const emptyBooker: BookerData = {
   bookerName: "",
+  bookerEmail: "",
   departmentId: "",
   role: "STAFF",
   purpose: "",
@@ -53,6 +55,24 @@ export function BookerFields({
           onChange={(e) => set({ bookerName: e.target.value })}
           placeholder="Vor- und Nachname"
         />
+      </div>
+
+      <div>
+        <label className="label" htmlFor="bookerEmail">
+          E-Mail *
+        </label>
+        <input
+          id="bookerEmail"
+          type="email"
+          className="input"
+          required
+          value={value.bookerEmail}
+          onChange={(e) => set({ bookerEmail: e.target.value })}
+          placeholder="name@uni-...de"
+        />
+        <p className="mt-1 text-xs text-slate-400">
+          Für Buchungsbestätigung und Erinnerung an die Rückgabe.
+        </p>
       </div>
 
       <div>

@@ -28,6 +28,7 @@ export async function GET(req: NextRequest) {
     bookerName: b.bookerName,
     department: b.department.shortName ?? b.department.name,
     role: b.role as BookingDTO["role"],
+    usageType: b.usageType as BookingDTO["usageType"],
     purpose: b.purpose,
     startTime: b.startTime.toISOString(),
     endTime: b.endTime.toISOString(),
@@ -83,12 +84,33 @@ export async function POST(req: NextRequest) {
         return conflict === null;
       };
 
+      // Studierenden-Regeln je Kategorie prüfen (in v1 anhand selbst
+      // gewählter Rolle; serverseitig durchgesetzt).
+      const checkStudentRule = (cat: {
+        name: string;
+        studentsAllowed: boolean;
+        studentsInRoomOnly: boolean;
+      }) => {
+        if (input.role !== "STUDENT") return;
+        if (!cat.studentsAllowed) {
+          throw new BadRequestError(
+            `"${cat.name}" ist für Studierende nicht buchbar.`
+          );
+        }
+        if (cat.studentsInRoomOnly && input.usageType === "TAKEOUT") {
+          throw new BadRequestError(
+            `"${cat.name}" dürfen Studierende nur zur Nutzung im Raum buchen, nicht ausleihen.`
+          );
+        }
+      };
+
       // Alle Positionen in konkrete Exemplar-IDs auflösen.
       for (const line of input.lines) {
         if (line.resourceItemId !== undefined) {
           // --- Konkretes Exemplar (Platz) ---
           const item = await tx.resourceItem.findUnique({
             where: { id: line.resourceItemId },
+            include: { category: true },
           });
           if (!item) throw new BadRequestError("Unbekanntes Exemplar.");
           if (item.unavailableReason !== null) {
@@ -96,6 +118,7 @@ export async function POST(req: NextRequest) {
               `"${item.label}" ist nicht buchbar (Sockel/Puffer).`
             );
           }
+          checkStudentRule(item.category);
           if (usedIds.has(item.id)) {
             throw new BadRequestError(`"${item.label}" wurde doppelt ausgewählt.`);
           }
@@ -113,6 +136,7 @@ export async function POST(req: NextRequest) {
             where: { id: categoryId },
           });
           if (!category) throw new BadRequestError("Unbekannte Kategorie.");
+          checkStudentRule(category);
 
           const candidates = await tx.resourceItem.findMany({
             where: { categoryId, unavailableReason: null },
@@ -146,8 +170,10 @@ export async function POST(req: NextRequest) {
           data: {
             resourceItemId: itemId,
             bookerName: input.bookerName,
+            bookerEmail: input.bookerEmail,
             departmentId: input.departmentId,
             role: input.role,
+            usageType: input.usageType,
             purpose: input.purpose,
             startTime: input.start,
             endTime: input.end,
@@ -167,6 +193,7 @@ export async function POST(req: NextRequest) {
       bookerName: b.bookerName,
       department: b.department.shortName ?? b.department.name,
       role: b.role as BookingDTO["role"],
+      usageType: b.usageType as BookingDTO["usageType"],
       purpose: b.purpose,
       startTime: b.startTime.toISOString(),
       endTime: b.endTime.toISOString(),

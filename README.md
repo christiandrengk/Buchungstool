@@ -27,6 +27,14 @@ Transparenz – alle sehen alle Buchungen.
   Verfügbarkeit ausgegraut/gekennzeichnet. Pflege über die Seite **Verwaltung**.
 - **Konfliktprüfung**: serverseitig, transaktionssicher – keine Doppelbuchungen
   desselben Platzes/Exemplars bei Zeitüberschneidung.
+- **E-Mail-Pflichtfeld**: für Buchungsbestätigung/Erinnerung (Versand folgt in
+  Phase 2 mit dem Deployment).
+- **Nutzungsart** bei Geräten: *Ausleihe (Mitnahme)* oder *Nutzung im Raum*.
+- **Regeln für Studierende** (serverseitig durchgesetzt; Rolle in v1 selbst
+  gewählt, bis Login existiert):
+  - Owl & 3D-Brille nur „Nutzung im Raum", keine Ausleihe (Kategorie-Flag
+    `studentsInRoomOnly`).
+  - maximale Buchungsdauer **7 Kalendertage**. Mitarbeitende: keine Beschränkung.
 
 ## Datenmodell (Kurzüberblick)
 

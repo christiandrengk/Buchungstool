@@ -57,6 +57,7 @@ async function main() {
     description?: string;
     sortOrder: number;
     studentsAllowed?: boolean;
+    studentsInRoomOnly?: boolean;
     ownerDepartmentId?: number | null;
     items: {
       label: string;
@@ -72,6 +73,7 @@ async function main() {
         description: opts.description,
         sortOrder: opts.sortOrder,
         studentsAllowed: opts.studentsAllowed ?? true,
+        studentsInRoomOnly: opts.studentsInRoomOnly ?? false,
         ownerDepartmentId: opts.ownerDepartmentId ?? null,
       },
     });
@@ -112,23 +114,23 @@ async function main() {
 
   console.log("→ Lege ausleihbare Geräte an …");
 
-  // Meeting Owl – hochpreisig, später nicht für Studierende.
+  // Meeting Owl – hochpreisig; Studierende nur zur Nutzung im Raum.
   await createCategory({
     name: "Meeting Owl",
     kind: "DEVICE",
     description: "Konferenzkamera für digitale Meetings (hochpreisig, 1.149 €).",
     sortOrder: 10,
-    studentsAllowed: false,
+    studentsInRoomOnly: true,
     items: [{ label: "Meeting Owl", note: "Hochpreisig – sorgsam behandeln." }],
   });
 
-  // 3D-Brille – sensibles Einzelstück (PKGB), später nicht für Studierende.
+  // 3D-Brille – sensibles Einzelstück (PKGB); Studierende nur Nutzung im Raum.
   await createCategory({
     name: "3D-Brille",
     kind: "DEVICE",
     description: "Sensibles Einzelstück der Abteilung PKGB.",
     sortOrder: 11,
-    studentsAllowed: false,
+    studentsInRoomOnly: true,
     ownerDepartmentId: pkgb,
     items: [{ label: "3D-Brille", note: "Einzelstück – nur nach Absprache." }],
   });
