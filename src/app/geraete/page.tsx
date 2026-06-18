@@ -3,19 +3,15 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { CategoryAvailabilityDTO } from "@/lib/types";
 import {
-  defaultLocalInput,
   fetchJSON,
   localInputToISO,
 } from "@/lib/format";
 import { BookerFields, BookerData, emptyBooker } from "@/components/BookerFields";
-import { TimeRange, TimeRangeValue } from "@/components/TimeRange";
+import { DayRangePicker, DayRangeValue } from "@/components/DayRangePicker";
 import { Notice, OwnerBadge, ReasonBadge } from "@/components/common";
 
 export default function GeraetePage() {
-  const [range, setRange] = useState<TimeRangeValue>({
-    start: defaultLocalInput(0),
-    end: defaultLocalInput(120),
-  });
+  const [range, setRange] = useState<DayRangeValue>({ start: "", end: "" });
   const [booker, setBooker] = useState<BookerData>(emptyBooker);
   const [categories, setCategories] = useState<CategoryAvailabilityDTO[]>([]);
   // Pro Kategorie gewünschte Anzahl (catId -> Anzahl). 0/fehlt = nicht gewählt.
@@ -116,7 +112,7 @@ export default function GeraetePage() {
 
       <section className="card p-5">
         <h2 className="mb-3 font-semibold">1. Zeitraum</h2>
-        <TimeRange value={range} onChange={setRange} />
+        <DayRangePicker value={range} onChange={setRange} />
       </section>
 
       <section className="card p-5">
