@@ -59,19 +59,18 @@ export function BookerFields({
 
       <div>
         <label className="label" htmlFor="bookerEmail">
-          E-Mail *
+          E-Mail (optional)
         </label>
         <input
           id="bookerEmail"
           type="email"
           className="input"
-          required
           value={value.bookerEmail}
           onChange={(e) => set({ bookerEmail: e.target.value })}
           placeholder="name@uni-...de"
         />
         <p className="mt-1 text-xs text-slate-400">
-          Für Buchungsbestätigung und Erinnerung an die Rückgabe.
+          Optional – für Buchungsbestätigung und Erinnerung an die Rückgabe.
         </p>
       </div>
 

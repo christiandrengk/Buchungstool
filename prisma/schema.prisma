@@ -84,9 +84,10 @@ model Booking {
   resourceItemId Int
   resourceItem   ResourceItem @relation(fields: [resourceItemId], references: [id])
 
-  // In v1 ohne Login: Pflichtangaben Name + Abteilung + E-Mail.
+  // In v1 ohne Login: Pflichtangaben Name + Abteilung. E-Mail optional
+  // (für Bestätigung/Erinnerung, falls angegeben).
   bookerName   String
-  bookerEmail  String
+  bookerEmail  String?
   departmentId Int
   department   Department @relation(fields: [departmentId], references: [id])
 

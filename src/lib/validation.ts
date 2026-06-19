@@ -14,7 +14,7 @@ export interface BookingLine {
 
 export interface ParsedBookingInput {
   bookerName: string;
-  bookerEmail: string;
+  bookerEmail: string | null;
   departmentId: number;
   role: "STAFF" | "STUDENT";
   usageType: "TAKEOUT" | "IN_ROOM";
@@ -73,11 +73,12 @@ export function parseBookingInput(body: any): ValidationResult {
   const bookerName = String(body?.bookerName ?? "").trim();
   if (!bookerName) return { ok: false, error: "Bitte einen Namen angeben." };
 
-  const bookerEmail = String(body?.bookerEmail ?? "").trim();
-  if (!bookerEmail) return { ok: false, error: "Bitte eine E-Mail-Adresse angeben." };
-  if (!EMAIL_RE.test(bookerEmail)) {
+  // E-Mail ist optional; falls angegeben, muss das Format stimmen.
+  const bookerEmailRaw = String(body?.bookerEmail ?? "").trim();
+  if (bookerEmailRaw && !EMAIL_RE.test(bookerEmailRaw)) {
     return { ok: false, error: "Bitte eine gültige E-Mail-Adresse angeben." };
   }
+  const bookerEmail = bookerEmailRaw || null;
 
   const departmentId = Number(body?.departmentId);
   if (!Number.isInteger(departmentId) || departmentId <= 0) {

@@ -25,14 +25,15 @@ Transparenz – alle sehen alle Buchungen.
   Vorgang, das System teilt automatisch freie Exemplare zu. Anzeige
   *gesamt / buchbar / aktuell frei*.
 - **Transparenz**: alle Buchungen (wer, was, wann, welche Abteilung) für alle sichtbar.
-- **Kein Login**: Pflichtfelder Name + E-Mail + Abteilung (Dropdown der 11 Abteilungen).
+- **Kein Login**: Pflichtfelder Name + Abteilung (Dropdown der 11 Abteilungen);
+  E-Mail optional.
 - **Verwaltung**: Kategorien und Geräte anlegen/entfernen, Eigentümer zuordnen,
   Exemplare als Sockel/Puffer („nicht buchbar") markieren – Pflege über die Seite
   **Verwaltung**. Nicht buchbare Exemplare werden in der Verfügbarkeit ausgegraut.
 - **Konfliktprüfung**: serverseitig, transaktionssicher – keine Doppelbuchungen
   desselben Platzes/Exemplars bei Zeitüberschneidung.
-- **E-Mail-Pflichtfeld**: für Buchungsbestätigung/Erinnerung (Versand folgt in
-  Phase 2 mit dem Deployment).
+- **E-Mail (optional)**: für Buchungsbestätigung/Erinnerung (Versand folgt in
+  Phase 2 mit dem Deployment; ohne E-Mail keine Benachrichtigung).
 - **Nutzungsart** bei Geräten: *Ausleihe (Mitnahme)* oder *Nutzung im Raum*.
 - **Regeln für Studierende** (serverseitig durchgesetzt; Rolle in v1 selbst
   gewählt, bis Login existiert):
